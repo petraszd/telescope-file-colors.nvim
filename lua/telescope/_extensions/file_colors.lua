@@ -3,7 +3,7 @@ local tele_conf = require("telescope.config").values
 local tele_finders = require("telescope.finders")
 local tele_make_entry = require("telescope.make_entry")
 
-local pz_colors_ns = vim.api.nvim_create_namespace("PZ_Colors_NS")
+local pz_colors_ns = vim.api.nvim_create_namespace("PZ_Colors_NS")  -- TODO: different name
 
 --- @class Color
 --- @field line string
@@ -73,7 +73,8 @@ local function _get_treesitter_colors(bufnr, lang)
   local root_node = ts_utils.get_root_for_node(cursor_node)
   local num_lines = vim.api.nvim_buf_line_count(bufnr)
 
-  --- TODO: comment
+  -- Nice thing about CSS (and it's extension languages) is that they have a color
+  -- as data type. So it is very easy to query for it.
   local hex_query = vim.treesitter.query.parse(lang, "(color_value) @val")
   for _, match, _ in hex_query:iter_matches(root_node, bufnr, 0, num_lines + 1) do
     local node = match[1]
@@ -81,7 +82,8 @@ local function _get_treesitter_colors(bufnr, lang)
     table.insert(result, Color:new_using_node(bufnr, normalize_hex_color(hex), node))
   end
 
-  --- TODO: comment
+  -- TODO: comment
+  -- TODO: rgb; cause currently only rgba is supported
   local rgba_query = vim.treesitter.query.parse(lang, [[
     (call_expression
       (function_name) @name
@@ -150,7 +152,8 @@ end
 local function get_colors(bufnr)
   local ft = vim.api.nvim_buf_get_option(bufnr, "filetype")
   local lang = vim.treesitter.language.get_lang(ft)
-  if lang == "scss" or lang == "css" then
+  local has_parser, _ = pcall(vim.treesitter.get_parser, bufnr, lang)
+  if has_parser and (lang == "scss" or lang == "css") then
     return _get_treesitter_colors(bufnr, lang)
   else
     return _get_bruteforce_colors(bufnr)
@@ -170,7 +173,7 @@ local function file_colors()
   for _, c in ipairs(colors) do
     if hex_to_hl[c.hex] == nil then
       n = n + 1
-      local hl = "PetrasHL_" .. n
+      local hl = "PetrasHL_" .. n  -- TODO: Differnt name instead of PetrasHL_
       hex_to_hl[c.hex] = hl
       vim.api.nvim_set_hl(pz_colors_ns, hl, { fg = c.hex, bg = c.hex })
     end
