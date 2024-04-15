@@ -3,7 +3,7 @@ local tele_conf = require("telescope.config").values
 local tele_finders = require("telescope.finders")
 local tele_make_entry = require("telescope.make_entry")
 
-local pz_colors_ns = vim.api.nvim_create_namespace("PZ_Colors_NS")  -- TODO: different name
+local file_colors_ns = vim.api.nvim_create_namespace("File_Colors_NS")
 
 --- @class Color
 --- @field line string
@@ -82,8 +82,7 @@ local function _get_treesitter_colors(bufnr, lang)
     table.insert(result, Color:new_using_node(bufnr, normalize_hex_color(hex), node))
   end
 
-  -- TODO: comment
-  -- TODO: rgb; cause currently only rgba is supported
+  -- There is also a rgba, rgb functions
   local rgba_query = vim.treesitter.query.parse(lang, [[
     (call_expression
       (function_name) @name
@@ -106,6 +105,31 @@ local function _get_treesitter_colors(bufnr, lang)
       end
     end
   end
+
+  -- Duplicated code. I do not feel that now it is the right time to abstract it.
+  local rgb_query = vim.treesitter.query.parse(lang, [[
+    (call_expression
+      (function_name) @name
+      (arguments
+        (integer_value) @r
+        (integer_value) @g
+        (integer_value) @b))
+  ]])
+  for _, match, _ in rgb_query:iter_matches(root_node, bufnr, 0, num_lines + 1) do
+    local node = match[1]
+    local func_name = vim.treesitter.get_node_text(node, bufnr)
+    if func_name:lower() == "rgb" then
+      local r = tonumber(vim.treesitter.get_node_text(match[2], bufnr))
+      local g = tonumber(vim.treesitter.get_node_text(match[3], bufnr))
+      local b = tonumber(vim.treesitter.get_node_text(match[4], bufnr))
+      if r >= 0 and r <= 255 and g >= 0 and g <= 255 and b >= 0 and b <= 255 then
+        local hex = string.format("#%02x%02x%02x", r, g, b)
+        table.insert(result, Color:new_using_node(bufnr, hex, node))
+      end
+    end
+  end
+
+  -- I am ignoring color constants (like white, black, etc, etc)
 
   return result
 end
@@ -173,9 +197,9 @@ local function file_colors()
   for _, c in ipairs(colors) do
     if hex_to_hl[c.hex] == nil then
       n = n + 1
-      local hl = "PetrasHL_" .. n  -- TODO: Differnt name instead of PetrasHL_
+      local hl = "File_Colors_HL_" .. n
       hex_to_hl[c.hex] = hl
-      vim.api.nvim_set_hl(pz_colors_ns, hl, { fg = c.hex, bg = c.hex })
+      vim.api.nvim_set_hl(file_colors_ns, hl, { fg = c.hex, bg = c.hex })
     end
   end
 
@@ -211,10 +235,10 @@ local function file_colors()
     local results_win = picker.results_win
     local results_bufnr = picker.results_bufnr
 
-    vim.api.nvim_win_set_hl_ns(results_win, pz_colors_ns)
+    vim.api.nvim_win_set_hl_ns(results_win, file_colors_ns)
     vim.api.nvim_buf_attach(results_bufnr, false, {
       on_detach = function()
-        vim.api.nvim_buf_clear_namespace(results_bufnr, pz_colors_ns, 0, -1)
+        vim.api.nvim_buf_clear_namespace(results_bufnr, file_colors_ns, 0, -1)
       end,
     })
   end
