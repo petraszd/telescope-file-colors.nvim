@@ -5,6 +5,17 @@ local tele_make_entry = require("telescope.make_entry")
 
 local file_colors_ns = vim.api.nvim_create_namespace("File_Colors_NS")
 
+--- @class FileColorsConfig
+--- @field use_treesitter boolean
+
+--- @type FileColorsConfig
+local DEFAULT_CONFIG = {
+  use_treesitter = false,
+}
+
+--- @type FileColorsConfig
+local cfg = vim.tbl_deep_extend("keep", {}, DEFAULT_CONFIG)
+
 --- @class Color
 --- @field line string
 --- @field hex string
@@ -172,8 +183,13 @@ local function _get_bruteforce_colors(bufnr)
 end
 
 --- @param bufnr number
+--- @param use_treesitter boolean
 --- @return Color[]
-local function get_colors(bufnr)
+local function get_colors(bufnr, use_treesitter)
+  if not use_treesitter then
+    return _get_bruteforce_colors(bufnr)
+  end
+
   local ft = vim.api.nvim_buf_get_option(bufnr, "filetype")
   local lang = vim.treesitter.language.get_lang(ft)
   local has_parser, _ = pcall(vim.treesitter.get_parser, bufnr, lang)
@@ -190,7 +206,7 @@ local function file_colors()
 
   local bufname = vim.api.nvim_buf_get_name(bufnr)
 
-  local colors = get_colors(bufnr)
+  local colors = get_colors(bufnr, cfg.use_treesitter)
 
   local n = 0
   local hex_to_hl = {}
@@ -245,6 +261,9 @@ local function file_colors()
 end
 
 return require("telescope").register_extension({
+  setup = function(ext_config, _)
+    cfg = vim.tbl_deep_extend("keep", ext_config, cfg)
+  end,
   exports = {
     file_colors = file_colors
   },
