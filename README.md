@@ -11,7 +11,6 @@ TODO
 
 ```lua
 require("lazy").setup({
-  ...,
   {
     "petraszd/telescope-file-colors.nvim",
     dependencies = {
@@ -19,8 +18,6 @@ require("lazy").setup({
     },
   }
 })
-
--- ...
 
 require("telescope").load_extension("file_colors")
 ```
