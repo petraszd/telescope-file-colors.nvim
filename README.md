@@ -5,7 +5,7 @@ buffer.
 
 ## Demo
 
-TODO
+![telescope-file-colors](https://github.com/petraszd/telescope-file-colors.nvim/assets/1826042/4eecfc90-19ac-4286-82e1-34f4d03d2b2a)
 
 ## Install / Setup
 
